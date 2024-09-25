@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowRight } from 'lucide-react';
-import React from 'react';
+import Image from 'next/image';
 
 type Category = {
   title: string;
@@ -33,7 +33,7 @@ const Categories = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 p-8 max-w-6xl mx-auto">
             {categories.map((category, index) => (
               <div key={index} className="flex flex-col items-center text-center p-4 rounded-lg">
-                <img
+                <Image
                   src={category.imageUrl}
                   alt={category.title}
                   className="rounded-md mb-4 w-full h-[500px] object-cover"

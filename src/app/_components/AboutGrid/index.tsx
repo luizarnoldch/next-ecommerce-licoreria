@@ -15,7 +15,7 @@ const AboutUs = (props: Props) => {
             <Leaf className="text-white" size={36} />
           </div>
           <h3 className="font-semibold text-lg mt-4 text-[#1E1E1E]">Productos de Calidad</h3>
-          <p className="text-[#1E1E1E]/50 mt-2">En "El Malecon" buscamos que nuestros clientes queden satisfechos.</p>
+          <p className="text-[#1E1E1E]/50 mt-2">En &quot;El Malecon&quot; buscamos que nuestros clientes queden satisfechos.</p>
         </div>
 
         <div className="flex flex-col items-center text-center">
