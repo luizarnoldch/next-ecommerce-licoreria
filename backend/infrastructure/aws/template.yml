@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Root Stack for the project that consumes other CloudFormation templates
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Project name
+  Stage:
+    Type: String
+    Description: Stage of the API Gateway
+  S3BucketStackName:
+    Type: String
+    Description: S3 Bucket for Stack and Resources
+
+Resources:
+  CognitoStack:
+    Type: AWS::CloudFormation::Stack
+    # DependsOn: CognitoTriggersStack
+    Properties:
+      TemplateURL: !Sub "https://s3.amazonaws.com/${S3BucketStackName}/cognito.yml"
+      Parameters:
+        ProjectName: !Ref ProjectName
+        S3BucketStackName: !Ref S3BucketStackName
+        # PreSignupExists: "false"
+        PostConfirmationExists: "true"
+        # PreAuthenticationExists: "false"
+        # PostAuthenticationExists: "true"
+        # PreTokenGenerationExists: "false"
+
+Outputs:
+  CognitoUserPoolId:
+    Value: !GetAtt CognitoStack.Outputs.CognitoUserPoolId
+    Description: The ID of the Cognito User Pool
+  CognitoUserPoolDomain:
+    Value: !GetAtt CognitoStack.Outputs.CognitoUserPoolDomain
+    Description: The domain name of the Cognito User Pool
+  CognitoUserPoolClient:
+    Value: !GetAtt CognitoStack.Outputs.CognitoUserPoolClient
+    Description: The User Pool Client

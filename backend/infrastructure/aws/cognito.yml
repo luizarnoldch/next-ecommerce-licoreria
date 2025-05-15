@@ -1,0 +1,320 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Cognito User Pool Template Stack
+
+Parameters:
+  ProjectName:
+    Type: String
+  S3BucketStackName:
+    Type: String
+    Description: S3 Bucket for Stack and Resources
+  PreSignupExists:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Indicates whether to create the PreSignUp Lambda function.
+  PostConfirmationExists:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Indicates whether to create the PostConfirmation Lambda function.
+  PreAuthenticationExists:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Indicates whether to create the PreAuthentication Lambda function.
+  PostAuthenticationExists:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Indicates whether to create the PostAuthentication Lambda function.
+  PreTokenGenerationExists:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Indicates whether to create the PreTokenGeneration Lambda function.
+
+Conditions:
+  IsPreSignupEnabled: !Equals [!Ref PreSignupExists, "true"]
+  IsPostConfirmationEnabled: !Equals [!Ref PostConfirmationExists, "true"]
+  IsPreAuthenticationEnabled: !Equals [!Ref PreAuthenticationExists, "true"]
+  IsPostAuthenticationEnabled: !Equals [!Ref PostAuthenticationExists, "true"]
+  IsPreTokenGenerationEnabled: !Equals [!Ref PreTokenGenerationExists, "true"]
+
+  AreTriggersEnabled: !Or
+    - !Equals [!Ref PreSignupExists, "true"]
+    - !Equals [!Ref PostConfirmationExists, "true"]
+    - !Equals [!Ref PreAuthenticationExists, "true"]
+    - !Equals [!Ref PostAuthenticationExists, "true"]
+    - !Equals [!Ref PreTokenGenerationExists, "true"]
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Condition: AreTriggersEnabled
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaBasicExecution
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+  PreSignupTriggerFunction:
+    Type: AWS::Lambda::Function
+    Condition: IsPreSignupEnabled
+    DependsOn: LambdaExecutionRole
+    Properties:
+      Code:
+        S3Bucket: !Ref S3BucketStackName
+        S3Key: "cognito/pre_sign_up.zip"
+      FunctionName: !Sub "${ProjectName}-pre_sign_up"
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Role: !GetAtt LambdaExecutionRole.Arn
+
+  PostConfirmationTriggerFunction:
+    Type: AWS::Lambda::Function
+    Condition: IsPostConfirmationEnabled
+    DependsOn: LambdaExecutionRole
+    Properties:
+      Code:
+        S3Bucket: !Ref S3BucketStackName
+        S3Key: "cognito/post_confirmation.zip"
+      FunctionName: !Sub "${ProjectName}-post_confirmation"
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Role: !GetAtt LambdaExecutionRole.Arn
+
+  PreAuthenticationTriggerFunction:
+    Type: AWS::Lambda::Function
+    Condition: IsPreAuthenticationEnabled
+    DependsOn: LambdaExecutionRole
+    Properties:
+      Code:
+        S3Bucket: !Ref S3BucketStackName
+        S3Key: "cognito/pre_auth.zip"
+      FunctionName: !Sub "${ProjectName}-pre_auth"
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Role: !GetAtt LambdaExecutionRole.Arn
+
+  PostAuthenticationTriggerFunction:
+    Type: AWS::Lambda::Function
+    Condition: IsPostAuthenticationEnabled
+    DependsOn: LambdaExecutionRole
+    Properties:
+      Code:
+        S3Bucket: !Ref S3BucketStackName
+        S3Key: "cognito/post_auth.zip"
+      FunctionName: !Sub "${ProjectName}-post_auth"
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Role: !GetAtt LambdaExecutionRole.Arn
+
+  PreTokenGenerationTriggerFunction:
+    Type: AWS::Lambda::Function
+    Condition: IsPreTokenGenerationEnabled
+    DependsOn: LambdaExecutionRole
+    Properties:
+      Code:
+        S3Bucket: !Ref S3BucketStackName
+        S3Key: "cognito/pre_token_gen.zip"
+      FunctionName: !Sub "${ProjectName}-pre_token_gen"
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Role: !GetAtt LambdaExecutionRole.Arn
+
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      AutoVerifiedAttributes:
+        - email
+      MfaConfiguration: "OFF"
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          TemporaryPasswordValidityDays: 7
+      Schema:
+        - AttributeDataType: "String"
+          Mutable: true
+          Name: email
+          Required: true
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate:
+          - email
+      UsernameAttributes:
+        - email
+      UsernameConfiguration:
+        CaseSensitive: true
+      UserPoolName: !Sub "${ProjectName}-user_auth"
+      LambdaConfig:
+        PreSignUp: !If
+          - IsPreSignupEnabled
+          - !GetAtt PreSignupTriggerFunction.Arn
+          - !Ref AWS::NoValue
+        PostConfirmation: !If
+          - IsPostConfirmationEnabled
+          - !GetAtt PostConfirmationTriggerFunction.Arn
+          - !Ref AWS::NoValue
+        PreAuthentication: !If
+          - IsPreAuthenticationEnabled
+          - !GetAtt PreAuthenticationTriggerFunction.Arn
+          - !Ref AWS::NoValue
+        PostAuthentication: !If
+          - IsPostAuthenticationEnabled
+          - !GetAtt PostAuthenticationTriggerFunction.Arn
+          - !Ref AWS::NoValue
+        PreTokenGeneration: !If
+          - IsPreTokenGenerationEnabled
+          - !GetAtt PreTokenGenerationTriggerFunction.Arn
+          - !Ref AWS::NoValue
+
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    DependsOn: CognitoUserPool
+    Properties:
+      Domain: !Sub "${ProjectName}-unique-domain"
+      UserPoolId: !Ref CognitoUserPool
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn: CognitoUserPool
+    Properties:
+      AccessTokenValidity: 60
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - phone
+        - profile
+        - aws.cognito.signin.user.admin
+      AuthSessionValidity: 3
+      CallbackURLs:
+        - "http://localhost:3000"
+      ClientName: !Sub "${ProjectName}-cognito_user_auth_app"
+      EnableTokenRevocation: true
+      ExplicitAuthFlows:
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+      GenerateSecret: false
+      IdTokenValidity: 60
+      LogoutURLs:
+        - "http://localhost:3000"
+      PreventUserExistenceErrors: ENABLED
+      RefreshTokenValidity: 30
+      SupportedIdentityProviders:
+        - "COGNITO"
+      TokenValidityUnits:
+        AccessToken: minutes
+        RefreshToken: days
+        IdToken: minutes
+      UserPoolId: !Ref CognitoUserPool
+
+  PreSignupTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsPreSignupEnabled
+    DependsOn:
+      - PreSignupTriggerFunction
+      - CognitoUserPool
+    Properties:
+      FunctionName: !GetAtt PreSignupTriggerFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+
+  PostConfirmationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsPostConfirmationEnabled
+    DependsOn:
+      - PostConfirmationTriggerFunction
+      - CognitoUserPool
+    Properties:
+      FunctionName: !GetAtt PostConfirmationTriggerFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+
+  PreAuthenticationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsPreAuthenticationEnabled
+    DependsOn:
+      - PreAuthenticationTriggerFunction
+      - CognitoUserPool
+    Properties:
+      FunctionName: !GetAtt PreAuthenticationTriggerFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+
+  PostAuthenticationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsPostAuthenticationEnabled
+    DependsOn:
+      - PostAuthenticationTriggerFunction
+      - CognitoUserPool
+    Properties:
+      FunctionName: !GetAtt PostAuthenticationTriggerFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+
+  PreTokenGenerationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    Condition: IsPreTokenGenerationEnabled
+    DependsOn:
+      - PreTokenGenerationTriggerFunction
+      - CognitoUserPool
+    Properties:
+      FunctionName: !GetAtt PreTokenGenerationTriggerFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+
+Outputs:
+  CognitoUserPoolId:
+    Value: !Ref CognitoUserPool
+    Description: ID of the Cognito User Pool
+  CognitoUserPoolDomain:
+    Value: !Ref CognitoUserPoolDomain
+    Description: Domain name of the Cognito User Pool
+  CognitoUserPoolClient:
+    Value: !Ref CognitoUserPoolClient
+    Description: User Pool Client
