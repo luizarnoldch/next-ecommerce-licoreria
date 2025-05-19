@@ -7,6 +7,9 @@ Parameters:
   S3BucketStackName:
     Type: String
     Description: S3 Bucket for Stack and Resources
+  S3BucketLambdasPrefix:
+    Type: String
+    Description: S3 Bucket prefix for all the lambdas
   PreSignupExists:
     Type: String
     Default: "false"
@@ -90,7 +93,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: !Ref S3BucketStackName
-        S3Key: "cognito/pre_sign_up.zip"
+        S3Key: !Sub "${S3BucketLambdasPrefix}/pre_sign_up.zip"
       FunctionName: !Sub "${ProjectName}-pre_sign_up"
       Handler: bootstrap
       Runtime: provided.al2023
@@ -103,7 +106,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: !Ref S3BucketStackName
-        S3Key: "cognito/post_confirmation.zip"
+        S3Key: !Sub "${S3BucketLambdasPrefix}/post_confirmation.zip"
       FunctionName: !Sub "${ProjectName}-post_confirmation"
       Handler: bootstrap
       Runtime: provided.al2023
@@ -116,7 +119,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: !Ref S3BucketStackName
-        S3Key: "cognito/pre_auth.zip"
+        S3Key: !Sub "${S3BucketLambdasPrefix}/pre_auth.zip"
       FunctionName: !Sub "${ProjectName}-pre_auth"
       Handler: bootstrap
       Runtime: provided.al2023
@@ -129,7 +132,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: !Ref S3BucketStackName
-        S3Key: "cognito/post_auth.zip"
+        S3Key: !Sub "${S3BucketLambdasPrefix}/post_auth.zip"
       FunctionName: !Sub "${ProjectName}-post_auth"
       Handler: bootstrap
       Runtime: provided.al2023
@@ -142,7 +145,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: !Ref S3BucketStackName
-        S3Key: "cognito/pre_token_gen.zip"
+        S3Key: !Sub "${S3BucketLambdasPrefix}/pre_token_gen.zip"
       FunctionName: !Sub "${ProjectName}-pre_token_gen"
       Handler: bootstrap
       Runtime: provided.al2023

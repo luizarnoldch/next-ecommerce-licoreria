@@ -1,0 +1,113 @@
+# infrastructure/aws/apigateway.yml
+AWSTemplateFormatVersion: "2010-09-09"
+Description: API Gateway protegida con Cognito e integración con Lambdas
+
+Parameters:
+  ProjectName:
+    Type: String
+  Stage:
+    Type: String
+  S3BucketStackName:
+    Type: String
+  S3BucketLambdasPrefix:
+    Type: String
+  CognitoUserPoolId:
+    Type: String
+  CognitoUserPoolClient:
+    Type: String
+
+Resources:
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub "${ProjectName}-${Stage}-api"
+      Description: API principal del ecommerce
+
+  CognitoAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: CognitoAuthorizer
+      Type: COGNITO_USER_POOLS
+      RestApiId: !Ref ApiGatewayRestApi
+      IdentitySource: method.request.header.Authorization
+      ProviderARNs:
+        - !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${CognitoUserPoolId}"
+
+  UsersResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: users
+
+  UserByEmailResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ParentId: !Ref UsersResource
+      PathPart: "{email}"
+
+  GetUserByEmailLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-${Stage}-get-user-by-email"
+      Code:
+        S3Bucket: !Ref S3BucketStackName
+        S3Key: !Sub "${S3BucketLambdasPrefix}/get_user_by_email.zip"
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures: [x86_64]
+      Environment:
+        Variables:
+          ENV: !Sub "DEV"
+      Role: !GetAtt LambdaExecutionRole.Arn
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [lambda.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  GetUserByEmailMethod:
+    Type: AWS::ApiGateway::Method
+    DependsOn: GetUserByEmailLambda
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref UserByEmailResource
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref CognitoAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUserByEmailLambda.Arn}/invocations"
+
+  ApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: GetUserByEmailMethod
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      StageName: !Ref Stage
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GetUserByEmailLambda
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayRestApi}/${Stage}/GET/users/{email}"
+
+Outputs:
+  ApiGatewayUrl:
+    Value: !Sub "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
+    Description: URL base de la API Gateway
+  CognitoAuthorizerId:
+    Value: !Ref CognitoAuthorizer
+    Description: ID del autorizador de Cognito

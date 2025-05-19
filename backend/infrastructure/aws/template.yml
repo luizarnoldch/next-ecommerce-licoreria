@@ -12,20 +12,38 @@ Parameters:
     Type: String
     Description: S3 Bucket for Stack and Resources
 
+  S3BucketLambdasPrefix:
+    Type: String
+    Description: S3 Bucket for Stack and Resources
+    Default: infrastructure/lambdas
+
 Resources:
   CognitoStack:
     Type: AWS::CloudFormation::Stack
-    # DependsOn: CognitoTriggersStack
     Properties:
-      TemplateURL: !Sub "https://s3.amazonaws.com/${S3BucketStackName}/cognito.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${S3BucketStackName}/infrastructure/cognito.yml"
       Parameters:
         ProjectName: !Ref ProjectName
+        S3BucketLambdasPrefix: !Ref S3BucketLambdasPrefix
         S3BucketStackName: !Ref S3BucketStackName
         # PreSignupExists: "false"
         PostConfirmationExists: "true"
         # PreAuthenticationExists: "false"
         # PostAuthenticationExists: "true"
         # PreTokenGenerationExists: "false"
+
+  ApiGatewayStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: CognitoStack
+    Properties:
+      TemplateURL: !Sub "https://s3.amazonaws.com/${S3BucketStackName}/infrastructure/apigateway.yml"
+      Parameters:
+        ProjectName: !Ref ProjectName
+        Stage: !Ref Stage
+        S3BucketStackName: !Ref S3BucketStackName
+        S3BucketLambdasPrefix: !Ref S3BucketLambdasPrefix
+        CognitoUserPoolId: !GetAtt CognitoStack.Outputs.CognitoUserPoolId
+        CognitoUserPoolClient: !GetAtt CognitoStack.Outputs.CognitoUserPoolClient
 
 Outputs:
   CognitoUserPoolId:

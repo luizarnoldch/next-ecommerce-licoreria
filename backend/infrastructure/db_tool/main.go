@@ -44,6 +44,8 @@ func main() {
 	}
 }
 
+// swag init -g main.go -o docs
+
 func resetDB(cfg *config.CONFIG) {
 	dbPath := strings.TrimPrefix(cfg.MICRO.DB.SQLITE.URI, "file:")
 	dbPath = strings.Split(dbPath, "?")[0] // Remove query parameters

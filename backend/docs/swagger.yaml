@@ -1,0 +1,23 @@
+definitions:
+  main.HelloResponse:
+    properties:
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /hello:
+    get:
+      description: Returns a Hello World message
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.HelloResponse'
+      summary: Hello endpoint
+      tags:
+      - example
+swagger: "2.0"
