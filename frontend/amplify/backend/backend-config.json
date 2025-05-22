@@ -1,0 +1,45 @@
+{
+  "auth": {
+    "frontend4d5f0b94": {
+      "customAuth": false,
+      "dependsOn": [],
+      "providerPlugin": "awscloudformation",
+      "service": "Cognito",
+      "serviceType": "imported"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_auth_frontend4d5f0b94_nativeClientId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "frontend4d5f0b94"
+        }
+      ]
+    },
+    "AMPLIFY_auth_frontend4d5f0b94_userPoolId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "frontend4d5f0b94"
+        }
+      ]
+    },
+    "AMPLIFY_auth_frontend4d5f0b94_userPoolName": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "frontend4d5f0b94"
+        }
+      ]
+    },
+    "AMPLIFY_auth_frontend4d5f0b94_webClientId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "frontend4d5f0b94"
+        }
+      ]
+    }
+  }
+}

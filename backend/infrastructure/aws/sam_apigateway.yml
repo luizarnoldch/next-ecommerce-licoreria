@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: API Gateway Stack convertido a SAM
+
+Parameters:
+  # General
+  ProjectName:
+    Type: String
+  Stage:
+    Type: String
+  S3BucketStackName:
+    Type: String
+  S3BucketLambdasPrefix:
+    Type: String
+
+  # Cognito
+  CognitoUserPoolId:
+    Type: String
+  CognitoUserPoolClient:
+    Type: String
+
+  # Lambdas
+  GetUserByEmailLambdaVersion:
+    Type: String
+
+Conditions:
+  GetUserByEmailHasVersion: !Not [!Equals [!Ref GetUserByEmailLambdaVersion, "NO_VERSION"]]
+
+Resources:
+  # Define tu API Gateway en modo serverless
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${ProjectName}-api-${Stage}"
+      StageName: !Ref Stage
+      DefinitionBody:
+        openapi: 3.0.1
+        info:
+          title: !Sub "${ProjectName} API"
+          version: "1.0"
+        paths:
+          /hello:
+            get:
+              x-amazon-apigateway-integration:
+                uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FunctionHello.Arn}/invocations"
+                httpMethod: POST
+                type: aws_proxy
+
+  # Función de ejemplo integrada en la API
+  FunctionHello:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      FunctionName: !Sub "${ProjectName}-hello-${Stage}"
+      CodeUri:
+        Bucket: !Ref S3BucketStackName
+        Key: !Sub "${S3BucketLambdasPrefix}/get_user_by_email.zip"
+        Version: !If
+          - GetUserByEmailHasVersion
+          - !Ref GetUserByEmailLambdaVersion
+          - !Ref AWS::NoValue
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures: [x86_64]
+      Environment:
+        Variables:
+          ENV: !Sub "DEV"
+      Events:
+        HelloGet:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /hello
+            Method: get
+
+Outputs:
+  ApiId:
+    Description: ID de la API Gateway
+    Value: !Ref ApiGateway
+  ApiEndpoint:
+    Description: URL de la API Gateway
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"

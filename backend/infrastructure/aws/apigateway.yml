@@ -16,6 +16,14 @@ Parameters:
   CognitoUserPoolClient:
     Type: String
 
+  # Lambdas
+  GetUserByEmailLambdaVersion:
+    Type: String
+    Default: "NO_VERSION"
+
+Conditions:
+  GetUserByEmailHasVersion: !Not [!Equals [!Ref GetUserByEmailLambdaVersion, "NO_VERSION"]]
+
 Resources:
   ApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
@@ -54,6 +62,10 @@ Resources:
       Code:
         S3Bucket: !Ref S3BucketStackName
         S3Key: !Sub "${S3BucketLambdasPrefix}/get_user_by_email.zip"
+        S3ObjectVersion: !If
+          - GetUserByEmailHasVersion
+          - !Ref GetUserByEmailLambdaVersion
+          - !Ref AWS::NoValue
       Handler: bootstrap
       Runtime: provided.al2023
       Architectures: [x86_64]

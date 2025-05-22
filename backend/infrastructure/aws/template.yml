@@ -2,6 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Root Stack for the project that consumes other CloudFormation templates
 
 Parameters:
+  # General
   ProjectName:
     Type: String
     Description: Project name
@@ -17,6 +18,16 @@ Parameters:
     Description: S3 Bucket for Stack and Resources
     Default: infrastructure/lambdas
 
+  # Cognito Lambdas
+  PostConfirmationLambdaVersion:
+    Type: String
+    Default: "NO_VERSION"
+
+  # Lambdas
+  GetUserByEmailLambdaVersion:
+    Type: String
+    Default: "NO_VERSION"
+
 Resources:
   CognitoStack:
     Type: AWS::CloudFormation::Stack
@@ -28,15 +39,31 @@ Resources:
         S3BucketStackName: !Ref S3BucketStackName
         # PreSignupExists: "false"
         PostConfirmationExists: "true"
+        PostConfirmationLambdaVersion: !Ref PostConfirmationLambdaVersion
         # PreAuthenticationExists: "false"
         # PostAuthenticationExists: "true"
         # PreTokenGenerationExists: "false"
 
-  ApiGatewayStack:
+  # ApiGatewayStack:
+  #   Type: AWS::CloudFormation::Stack
+  #   DependsOn: CognitoStack
+  #   Properties:
+  #     TemplateURL: !Sub "https://s3.amazonaws.com/${S3BucketStackName}/infrastructure/apigateway.yml"
+  #     Parameters:
+  #       ProjectName: !Ref ProjectName
+  #       Stage: !Ref Stage
+  #       S3BucketStackName: !Ref S3BucketStackName
+  #       S3BucketLambdasPrefix: !Ref S3BucketLambdasPrefix
+  #       CognitoUserPoolId: !GetAtt CognitoStack.Outputs.CognitoUserPoolId
+  #       CognitoUserPoolClient: !GetAtt CognitoStack.Outputs.CognitoUserPoolClient
+  #       # Lambdas
+  #       GetUserByEmailLambdaVersion: !Ref GetUserByEmailLambdaVersion
+
+  SAMApiGatewayStack:
     Type: AWS::CloudFormation::Stack
     DependsOn: CognitoStack
     Properties:
-      TemplateURL: !Sub "https://s3.amazonaws.com/${S3BucketStackName}/infrastructure/apigateway.yml"
+      TemplateURL: !Sub "https://s3.amazonaws.com/${S3BucketStackName}/infrastructure/sam_apigateway.yml"
       Parameters:
         ProjectName: !Ref ProjectName
         Stage: !Ref Stage
@@ -44,6 +71,8 @@ Resources:
         S3BucketLambdasPrefix: !Ref S3BucketLambdasPrefix
         CognitoUserPoolId: !GetAtt CognitoStack.Outputs.CognitoUserPoolId
         CognitoUserPoolClient: !GetAtt CognitoStack.Outputs.CognitoUserPoolClient
+        # Lambdas
+        GetUserByEmailLambdaVersion: !Ref GetUserByEmailLambdaVersion
 
 Outputs:
   CognitoUserPoolId:

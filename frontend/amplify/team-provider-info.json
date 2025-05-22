@@ -1,0 +1,25 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-frontend-dev-922b2-authRole",
+      "UnauthRoleArn": "arn:aws:iam::356442333285:role/amplify-frontend-dev-922b2-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::356442333285:role/amplify-frontend-dev-922b2-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-frontend-dev-922b2-deployment",
+      "UnauthRoleName": "amplify-frontend-dev-922b2-unauthRole",
+      "StackName": "amplify-frontend-dev-922b2",
+      "StackId": "arn:aws:cloudformation:us-east-1:356442333285:stack/amplify-frontend-dev-922b2/da55bd10-3477-11f0-a79f-0affc845b361",
+      "AmplifyAppId": "dqewbonr64hs4"
+    },
+    "categories": {
+      "auth": {
+        "frontend4d5f0b94": {
+          "userPoolId": "us-east-1_g7zGFysTn",
+          "userPoolName": "ecommerce-user_auth",
+          "webClientId": "4om9ikbrggbici01jql3gh0uik",
+          "nativeClientId": "4om9ikbrggbici01jql3gh0uik"
+        }
+      }
+    }
+  }
+}

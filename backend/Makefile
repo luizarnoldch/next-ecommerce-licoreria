@@ -3,13 +3,10 @@ TEMPLATE_FILE := infrastructure/aws/template.yml  # Path to the CloudFormation t
 STACK_NAME := EcommerceTemplate  # Name of the CloudFormation stack
 PROJECT_NAME := ecommerce  # Name of the CloudFormation project
 BUCKET_NAME := ecommerce-arnold-s3-bucket  # Replace with your S3 bucket name
-AWS_REGION := us-east-1  # AWS region for the S3 bucket (change if necessary)
 
 # Ensure no extra spaces in variable definitions
 strip = $(shell echo $(1) | xargs)  # Function to trim whitespace
 BUCKET_NAME := $(call strip,$(BUCKET_NAME))
-AWS_REGION := $(call strip,$(AWS_REGION))
-
 
 .PHONY: db build create-s3 check-s3 upload-s3 deploy destroy cd
 
@@ -30,21 +27,14 @@ db:
 # Build the project
 build:
 	@echo "Building the project..."
-	go run ./infrastructure/build.go
+	go run ./infrastructure/scripts/build/main.go
 	@echo "Project built."
 
 # Create an S3 bucket with a policy for CloudFormation
 create-s3:
-	@echo "Creating S3 bucket ${BUCKET_NAME} in region ${AWS_REGION}..."
-	@if [ "${AWS_REGION}" = "us-east-1" ]; then \
-		aws s3api create-bucket --bucket "${BUCKET_NAME}" --region "${AWS_REGION}"; \
-	else \
-		aws s3api create-bucket --bucket "${BUCKET_NAME}" --region "${AWS_REGION}" --create-bucket-configuration LocationConstraint="${AWS_REGION}"; \
-	fi; \
-	# Create the bucket policy
-	POLICY='{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"cloudformation.amazonaws.com"},"Action":"s3:*","Resource":"arn:aws:s3:::${BUCKET_NAME}/*"}]}'; \
-	aws s3api put-bucket-policy --bucket "${BUCKET_NAME}" --policy "$$POLICY"; \
-	echo "S3 bucket ${BUCKET_NAME} created with policy for CloudFormation."
+	@echo "Creating the S3 Bucket..."
+	go run ./infrastructure/scripts/create-s3/main.go
+	@echo "S3 Bucket Created."
 
 # Check if the S3 bucket exists
 check-s3:
@@ -59,21 +49,18 @@ check-s3:
 # Upload CloudFormation templates and the /bin/cognito directory to S3
 upload-s3:
 	@echo "Uploading templates to S3..."
-	aws s3 cp infrastructure/aws/cognito.yml s3://${BUCKET_NAME}/infrastructure/cognito.yml
-	aws s3 cp infrastructure/aws/apigateway.yml s3://${BUCKET_NAME}/infrastructure/apigateway.yml
-	aws s3 cp infrastructure/aws/template.yml s3://${BUCKET_NAME}/infrastructure/template.yml
+	aws s3 cp infrastructure/aws/ s3://${BUCKET_NAME}/infrastructure/ --recursive --exclude "*.swp"
 	@echo "Uploading /bin/cognito directory to S3..."
 	aws s3 cp bin/ s3://${BUCKET_NAME}/infrastructure/lambdas --recursive
 	@echo "Templates and /bin directory uploaded to S3."
+	
+# aws s3api head-object --bucket ${BUCKET_NAME} --key infrastructure/lambdas/post_confirmation.zip --query VersionId --output text
+
 
 # Deploy the CloudFormation stack using SAM
 deploy:
 	@echo "Deploying the infrastructure..."
-	sam deploy --template-file $(TEMPLATE_FILE) \
-		--stack-name $(STACK_NAME) \
-		--s3-bucket $(BUCKET_NAME) \
-		--capabilities CAPABILITY_IAM \
-		--parameter-overrides "ProjectName=$(PROJECT_NAME) Stage=Prod S3BucketStackName=$(BUCKET_NAME)"
+	go run ./infrastructure/scripts/deploy-template/main.go
 	@echo "Infrastructure deployed."
 
 # Delete the CloudFormation stack

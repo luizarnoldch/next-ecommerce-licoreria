@@ -24,6 +24,8 @@ Parameters:
       - "true"
       - "false"
     Description: Indicates whether to create the PostConfirmation Lambda function.
+  PostConfirmationLambdaVersion:
+    Type: String
   PreAuthenticationExists:
     Type: String
     Default: "false"
@@ -48,6 +50,8 @@ Parameters:
 
 Conditions:
   IsPreSignupEnabled: !Equals [!Ref PreSignupExists, "true"]
+  GetUserByEmailHasVersion:
+    !Not [!Equals [!Ref PostConfirmationLambdaVersion, "NO_VERSION"]]
   IsPostConfirmationEnabled: !Equals [!Ref PostConfirmationExists, "true"]
   IsPreAuthenticationEnabled: !Equals [!Ref PreAuthenticationExists, "true"]
   IsPostAuthenticationEnabled: !Equals [!Ref PostAuthenticationExists, "true"]
@@ -107,6 +111,10 @@ Resources:
       Code:
         S3Bucket: !Ref S3BucketStackName
         S3Key: !Sub "${S3BucketLambdasPrefix}/post_confirmation.zip"
+        S3ObjectVersion: !If
+          - GetUserByEmailHasVersion
+          - !Ref PostConfirmationLambdaVersion
+          - !Ref AWS::NoValue
       FunctionName: !Sub "${ProjectName}-post_confirmation"
       Handler: bootstrap
       Runtime: provided.al2023

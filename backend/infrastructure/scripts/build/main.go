@@ -53,7 +53,7 @@ func findLambdas(rootDir string) ([]Lambda, error) {
 }
 
 func compileLambda(sourceDir string) error {
-	cmd := exec.Command("go", "build", "-tags", "lambda.norpc", "-o", "bootstrap")
+	cmd := exec.Command("go", "build", "-a", "-tags", "lambda.norpc", "-o", "bootstrap")
 	cmd.Dir = sourceDir
 	cmd.Env = os.Environ()
 

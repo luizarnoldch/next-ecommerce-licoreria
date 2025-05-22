@@ -5,6 +5,9 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+import AmplifyContext from "@/context/AmplifyContext";
+import '@aws-amplify/ui-react/styles.css';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -30,18 +33,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <main className="w-full h-full">
+        <AmplifyContext>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
-            <Navbar />
-            {children}
-            <Footer />
+            <main className="w-full h-full">
+              <Navbar />
+              {children}
+              <Footer />
+            </main>
           </ThemeProvider>
-        </main>
+        </AmplifyContext>
       </body>
     </html>
   );
